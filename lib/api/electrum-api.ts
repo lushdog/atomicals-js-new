@@ -4,6 +4,7 @@ import axios, { AxiosResponse } from 'axios';
 import { ElectrumApiInterface, IUnspentResponse } from "./electrum-api.interface";
 import { UTXO } from "../types/UTXO.interface"
 import { detectAddressTypeToScripthash } from "../utils/address-helpers"
+import { getUnSpentUtxo } from '../utils/utils';
 
 export class ElectrumApi implements ElectrumApiInterface {
     private isOpenFlag = false;
@@ -118,6 +119,50 @@ export class ElectrumApi implements ElectrumApiInterface {
                         return {unconfirmed: 0, confirmed: 0, utxos: []};
                     });
                     const utxos = response.utxos.sort((a, b) => a.value - b.value);
+                    for (const utxo of utxos) {
+                        // Do not use utxos that have attached atomicals
+                        if (hasAttachedAtomicals(utxo)) {
+                            continue;
+                        }
+                        // If the exact amount was requested, then only return if the exact amount is found
+                        if (exactSatoshiAmount) {
+                            if (utxo.value === satoshis) {
+                                clearInterval(intervalId);
+                                resolve(utxo);
+                                return;
+                            }
+                        } else {
+                            if (utxo.value >= satoshis) {
+                                clearInterval(intervalId);
+                                resolve(utxo);
+                                return;
+                            }
+                        }
+                    }
+
+                } catch (error) {
+                    console.error(error);
+                    reject(error);
+                    clearInterval(intervalId);
+                }
+            };
+            intervalId = setInterval(checkForUtxo, intervalSeconds * 1000);
+        });
+    }
+    async waitUntilUTXONew(address: string, satoshis: number, intervalSeconds = 10, exactSatoshiAmount = false): Promise<UTXO> {
+        function hasAttachedAtomicals(utxo): any | null {
+            if (utxo && utxo.atomicals && utxo.atomicals.length) {
+                return true;
+            }
+            return utxo && utxo.height <= 0;
+        }
+        return new Promise((resolve, reject) => {
+            let intervalId: any;
+            const checkForUtxo = async () => {
+                console.log('...');
+                try {
+                    let utxos = await getUnSpentUtxo(address);
+                    utxos.sort((a, b) => a.value - b.value);
                     for (const utxo of utxos) {
                         // Do not use utxos that have attached atomicals
                         if (hasAttachedAtomicals(utxo)) {

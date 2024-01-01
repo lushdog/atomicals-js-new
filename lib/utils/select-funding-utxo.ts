@@ -55,7 +55,8 @@ export const getFundingUtxo = async (electrumxApi, address: string, amount: numb
   }
   console.log(`...`)
   console.log(`...`)
-  const fundingUtxo = await electrumxApi.waitUntilUTXO(address, amount, seconds ? 5 : seconds, false);
+  // const fundingUtxo = await electrumxApi.waitUntilUTXO(address, amount, seconds ? 5 : seconds, false);
+  const fundingUtxo = await electrumxApi.waitUntilUTXONew(address, amount, seconds ? 5 : seconds, false);
   console.log(`Detected Funding UTXO (${fundingUtxo.txid}:${fundingUtxo.vout}) with value ${fundingUtxo.value} for funding...`);
   return fundingUtxo
 }
