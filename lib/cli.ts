@@ -1570,7 +1570,7 @@ program.command('mint-dft')
       const config: ConfigurationInterface = validateCliInputs();
       ticker = ticker.toLowerCase();
       const atomicals = new Atomicals(ElectrumApi.createClient(process.env.ELECTRUMX_PROXY_BASE_URL || ''));
-      let walletRecord = resolveWalletAliasNew(walletInfo, options.initialowner, walletInfo.primary);
+      // let walletRecord = resolveWalletAliasNew(walletInfo, options.initialowner, walletInfo.primary);
       let fundingRecord = resolveWalletAliasNew(walletInfo, options.funding, walletInfo.funding);
       const sats = parseInt(options.satsbyte);
 
@@ -1578,7 +1578,7 @@ program.command('mint-dft')
         rbf: options.rbf,
         satsbyte: parseInt(options.satsbyte),
         disableMiningChalk: options.disablechalk,
-      }, walletRecord.address, ticker, fundingRecord.WIF);
+      }, options.initialowner, ticker, fundingRecord.WIF);
       handleResultLogging(result, true);
     } catch (error) {
       console.log(error);
