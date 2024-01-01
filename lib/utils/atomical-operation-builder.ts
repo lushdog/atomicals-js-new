@@ -623,9 +623,10 @@ export class AtomicalOperationBuilder {
         let nonce = Math.floor(Math.random() * 10000000);
         let noncesGenerated = 0;
         let atomicalId: string | null = null;
-        let commitTxid: string | null = null;
+        let commitTxid: string | null = '';
         let revealTxid: string | null = null;
         let commitMinedWithBitwork = false;
+        let utxoOfCommitAddressValue = 0;
 
         // Placeholder for only estimating tx deposit fee size.
         if (performBitworkForCommitTx) {
@@ -752,9 +753,10 @@ export class AtomicalOperationBuilder {
                             script: Buffer.from(fundingKeypair.output, "hex"),
                         },
                     });
+                    utxoOfCommitAddressValue = this.getOutputValueForCommit(fees);
                     psbtStart.addOutput({
                         address: updatedBaseCommit.scriptP2TR.address,
-                        value: this.getOutputValueForCommit(fees),
+                        value: utxoOfCommitAddressValue,
                     });
 
                     this.addCommitChangeOutputIfRequired(
@@ -769,6 +771,7 @@ export class AtomicalOperationBuilder {
 
                     const interTx = psbtStart.extractTransaction();
 
+                    commitTxid = interTx.getId();
                     const rawtx = interTx.toHex();
                     AtomicalOperationBuilder.finalSafetyCheckForExcessiveFee(
                         psbtStart,
@@ -848,14 +851,6 @@ export class AtomicalOperationBuilder {
         ////////////////////////////////////////////////////////////////////////
 
         // The scriptP2TR and hashLockP2TR will contain the utxo needed for the commit and now can be revealed
-        const utxoOfCommitAddress = await getFundingUtxo(
-            this.options.electrumApi,
-            scriptP2TR.address,
-            this.getOutputValueForCommit(fees),
-            commitMinedWithBitwork,
-            5
-        );
-        commitTxid = utxoOfCommitAddress.txid;
         atomicalId = commitTxid + "i0"; // Atomicals are always minted at the 0'th output
 
         const tapLeafScript = {
@@ -878,10 +873,10 @@ export class AtomicalOperationBuilder {
             psbt.setVersion(1);
             psbt.addInput({
                 sequence: this.options.rbf ? RBF_INPUT_SEQUENCE : undefined,
-                hash: utxoOfCommitAddress.txid,
-                index: utxoOfCommitAddress.vout,
+                hash: commitTxid,
+                index: 0,
                 witnessUtxo: {
-                    value: utxoOfCommitAddress.value,
+                    value: utxoOfCommitAddressValue,
                     script: hashLockP2TR.output!,
                 },
                 tapLeafScript: [tapLeafScript],
