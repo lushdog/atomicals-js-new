@@ -881,7 +881,7 @@ export class AtomicalOperationBuilder {
                 },
                 tapLeafScript: [tapLeafScript],
             });
-            totalInputsforReveal += utxoOfCommitAddress.value;
+            totalInputsforReveal += utxoOfCommitAddressValue;
 
             // Add any additional inputs that were assigned
             for (const additionalInput of this.inputUtxos) {
